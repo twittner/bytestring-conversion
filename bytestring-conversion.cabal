@@ -44,6 +44,7 @@ library
         base              >= 4.5     && < 5.0
       , attoparsec        >= 0.10    && < 1.0
       , bytestring        >= 0.9.2.1 && < 1.0
+      , bytestring-builder              < 1.0
       , case-insensitive  >= 1.2     && < 2.0
       , text              >= 0.11    && < 2.0
 
