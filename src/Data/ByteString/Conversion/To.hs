@@ -4,7 +4,6 @@
 
 {-# LANGUAGE BangPatterns      #-}
 {-# LANGUAGE CPP               #-}
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE FlexibleInstances #-}
 
 module Data.ByteString.Conversion.To
@@ -16,8 +15,8 @@ module Data.ByteString.Conversion.To
 
 import Data.ByteString (ByteString)
 import Data.ByteString.Conversion.Internal
-import Data.ByteString.Lazy.Builder
-import Data.ByteString.Lazy.Builder.Extras hiding (runBuilder)
+import Data.ByteString.Builder
+import Data.ByteString.Builder.Extra hiding (runBuilder)
 import Data.CaseInsensitive (CI, original)
 import Data.Int
 import Data.List (intersperse)
@@ -28,9 +27,14 @@ import Data.Word
 import GHC.Float (float2Double)
 
 import qualified Data.ByteString.Lazy    as L
+import qualified Data.ByteString.Char8   as BS8
 import qualified Data.Text               as T
 import qualified Data.Text.Lazy          as TL
 import qualified Data.Text.Lazy.Encoding as TL
+
+#if !MIN_VERSION_bytestring(0,10,0)
+import qualified Data.ByteString.Lazy.Internal as L
+#endif
 
 #ifdef WINDOWS
 import Blaze.Text.Double
@@ -83,8 +87,8 @@ instance ToByteString a => ToByteString (List a) where
     builder = mconcat . intersperse comma . map builder . fromList
 
 instance ToByteString Bool where
-    builder True  = byteString "true"
-    builder False = byteString "false"
+    builder True  = byteString $ BS8.pack "true"
+    builder False = byteString $ BS8.pack "false"
 
 instance ToByteString a => ToByteString (CI a) where
     builder = builder . original
@@ -95,7 +99,13 @@ toByteString = runBuilder . builder
 -- | Please note that this needs to convert from a lazy 'L.ByteString' to
 -- a strict one which involves copying the whole string.
 toByteString' :: ToByteString a => a -> ByteString
-toByteString' = L.toStrict . toByteString
+toByteString' = toStrict . toByteString
+  where
+#if MIN_VERSION_bytestring(0,10,0)
+   toStrict = L.toStrict
+#else
+   toStrict = L.foldrChunks mappend mempty
+#endif
 
 runBuilder :: Builder -> L.ByteString
 runBuilder = toLazyByteStringWith (safeStrategy 32 smallChunkSize) L.empty
@@ -117,7 +127,7 @@ toWord = fromIntegral . abs
 {-# SPECIALISE toWord :: Int64 -> Word64 #-}
 
 comma, minus :: Builder
-comma = byteString ","
-minus = byteString "-"
+comma = byteString $ BS8.pack ","
+minus = byteString $ BS8.pack "-"
 {-# INLINE comma #-}
 {-# INLINE minus #-}

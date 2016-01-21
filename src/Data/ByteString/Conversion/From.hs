@@ -54,10 +54,11 @@ runParser p b = case feed (parse p b) "" of
 
 runParser' :: Parser a -> Lazy.ByteString -> Either String a
 runParser' p b = case Lazy.parse p b of
-    Lazy.Done ""   r -> Right r
-    Lazy.Done _    _ -> Left "Trailing input"
-    Lazy.Fail _ [] m -> Left m
-    Lazy.Fail _ x  m -> Left (shows x . showString m $ "")
+    Lazy.Done t    r
+        | Lazy.null t -> Right r
+    Lazy.Done _    _  -> Left "Trailing input"
+    Lazy.Fail _ [] m  -> Left m
+    Lazy.Fail _ x  m  -> Left (shows x . showString m $ "")
 
 -----------------------------------------------------------------------------
 -- Instances
